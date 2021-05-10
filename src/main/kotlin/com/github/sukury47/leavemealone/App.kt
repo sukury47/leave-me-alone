@@ -3,13 +3,27 @@
  */
 package com.github.sukury47.leavemealone
 
-class App {
-    val greeting: String
-        get() {
-            return "Hello world."
-        }
+import javafx.application.Application
+import javafx.stage.Stage
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
+import org.koin.core.context.startKoin
+import org.koin.core.parameter.parametersOf
+
+class App : Application(), KoinComponent {
+    private lateinit var primaryStage: Stage
+    private val screenController: ScreenController by inject { parametersOf(primaryStage) }
+
+    override fun start(primaryStage: Stage) {
+        this.primaryStage = primaryStage
+        screenController.show(ScreenController.Screen.Key.ROOT)
+    }
 }
 
 fun main(args: Array<String>) {
-    println(App().greeting)
+    startKoin {
+        modules(appModule)
+    }
+
+    Application.launch(App::class.java, *args)
 }
