@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.StackPane?>
+
+
+<StackPane fx:id="sp" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="200.0" prefWidth="200.0" style="-fx-border-color: #4B9BD2; -fx-border-width: 4;" xmlns="http://javafx.com/javafx/15.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.github.sukury47.leavemealone.views.VUglyBinary">
+   <children>
+      <ImageView fx:id="iv" fitHeight="180.0" fitWidth="180.0" pickOnBounds="true" preserveRatio="true" />
+      <HBox alignment="BOTTOM_LEFT" prefHeight="100.0" prefWidth="200.0" spacing="4.0" StackPane.alignment="CENTER_LEFT">
+         <children>
+            <Label fx:id="lbFormat" alignment="CENTER" prefWidth="40.0" style="-fx-background-color: #4B9BD2;" text="bmp">
+               <padding>
+                  <Insets bottom="4.0" left="4.0" right="4.0" top="4.0" />
+               </padding>
+            </Label>
+            <Label fx:id="lbSize" alignment="CENTER" prefWidth="80.0" style="-fx-background-color: #4B9BD2;" text="1920 x 1080">
+               <padding>
+                  <Insets bottom="4.0" left="4.0" right="4.0" top="4.0" />
+               </padding>
+            </Label>
+            <Label fx:id="lbByteCount" alignment="CENTER" prefWidth="65.0" style="-fx-background-color: #4B9BD2;" text="4MB">
+               <padding>
+                  <Insets bottom="4.0" left="4.0" right="4.0" top="4.0" />
+               </padding>
+            </Label>
+         </children>
+      </HBox>
+      <Label fx:id="lbHex" style="-fx-background-color: #4B9BD2;" text="BIN001" StackPane.alignment="TOP_LEFT">
+         <padding>
+            <Insets bottom="4.0" left="4.0" right="4.0" top="4.0" />
+         </padding>
+      </Label>
+   </children>
+</StackPane>

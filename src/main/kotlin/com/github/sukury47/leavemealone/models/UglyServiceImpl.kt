@@ -1,18 +1,27 @@
 package com.github.sukury47.leavemealone.models
 
+import com.github.sukury47.leavemealone.LoggerDelegate
 import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.asFlow
+import kotlinx.coroutines.flow.*
 import kr.dogfoot.hwplib.`object`.HWPFile
+import kr.dogfoot.hwplib.`object`.bindata.EmbeddedBinaryData
 import kr.dogfoot.hwplib.`object`.docinfo.BinData
 import kr.dogfoot.hwplib.reader.HWPReader
+import net.coobird.thumbnailator.Thumbnailator
+import net.coobird.thumbnailator.Thumbnails
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
+import java.lang.IllegalArgumentException
 
 class UglyServiceImpl : UglyService {
+    private val logger by LoggerDelegate()
     override suspend fun loadSource(path: String): HWPFile = withContext(Dispatchers.IO) {
+        logger.debug("load hwp from $path")
         HWPReader.fromFile(path)
     }
 
-    @OptIn(ObsoleteCoroutinesApi::class)
-    override suspend fun loadBinaries(source: HWPFile): List<UglyBinary> = withContext(Dispatchers.IO) {
+    @OptIn(FlowPreview::class)
+    override suspend fun loadBinaries(source: HWPFile): Flow<UglyBinary> {
         val binariesBySuffix = mutableMapOf<String, BinData>()
         source.docInfo.binDataList.forEach {
             binariesBySuffix[String.format("BIN%04X", it.binDataID)] = it
@@ -20,22 +29,45 @@ class UglyServiceImpl : UglyService {
 
         val embeddedBinaries = source.binData.embeddedBinaryDataList
 
-        val items = mutableListOf<UglyBinary>()
-        val accContext = newSingleThreadContext("acc")
+        logger.debug("where am I?")
 
-        embeddedBinaries
-            .asSequence()
-            .map {
-                val hex = it.name.substringBeforeLast(".")
-                val binary = binariesBySuffix[hex]!!
-                async {
-                    UglyBinary(binary, it)
-                }
-            }.forEach {
-                withContext(accContext) {
-                    items.add(it.await())
-                }
+        fun sibal(embeddedBinary: EmbeddedBinaryData) = flow {
+            val hex = embeddedBinary.name.substringBeforeLast(".")
+            val binary = binariesBySuffix[hex]!!
+            logger.debug("UglyBinary()")
+            emit(UglyBinary(binary, embeddedBinary))
+        }
+
+        logger.debug("size: ${embeddedBinaries.size}")
+
+        return embeddedBinaries
+            .asFlow()
+            .flatMapMerge {
+                sibal(it)
             }
-        items
+    }
+
+    override suspend fun compressByJpg(binary: UglyBinary): Long {
+        if (binary.format == "jpg") {
+            throw IllegalArgumentException()
+        } else {
+            val orgLength = binary.bytes.size.toLong()
+            ByteArrayInputStream(binary.bytes).use {
+                val baos = ByteArrayOutputStream()
+                Thumbnails.of(it)
+                    .scale(1.0)
+                    .outputFormat("jpg")
+                    .toOutputStream(baos)
+
+                binary.bytes = baos.toByteArray()
+                binary.format = "jpg"
+            }
+            val compressedLength = binary.bytes.size.toLong()
+            return orgLength - compressedLength
+        }
+    }
+
+    override suspend fun compressByScale(binary: UglyBinary, scale: Float): UglyBinary {
+        TODO("Not yet implemented")
     }
 }
