@@ -4,12 +4,10 @@ import com.github.sukury47.leavemealone.LoggerDelegate
 import com.github.sukury47.leavemealone.models.UglyBinary
 import com.github.sukury47.leavemealone.viewmodels.VMRoot
 import javafx.beans.property.SimpleBooleanProperty
-import javafx.collections.FXCollections
 import javafx.collections.ListChangeListener
 import javafx.event.EventHandler
 import javafx.fxml.FXML
 import javafx.fxml.FXMLLoader
-import javafx.scene.Node
 import javafx.scene.Parent
 import javafx.scene.control.*
 import javafx.scene.layout.TilePane
@@ -52,10 +50,22 @@ class VRoot : IView, KoinComponent {
     private lateinit var miCompress: MenuItem
 
     @FXML
+    private lateinit var miSaveAs: MenuItem
+
+    @FXML
     private lateinit var scrp: ScrollPane
 
     @FXML
     private lateinit var lbStatus: Label
+
+    @FXML
+    private lateinit var vbProgress: VBox
+
+    @FXML
+    private lateinit var pb: ProgressBar
+
+    @FXML
+    private lateinit var lbPbMsg: Label
 
     private val logger by LoggerDelegate()
     private val myScope = MainScope()
@@ -67,12 +77,22 @@ class VRoot : IView, KoinComponent {
         bindUglyBinaries()
         bindMenuBar()
         sorryMyBad()
+        bindProgress()
 
-        tpUglyBinaries.disableProperty().bind(busyProperty)
         viewModel.uglySourceByteCount.addListener { _, _, newValue ->
             val currentByteCount = UglyBinary.toBinaryPrefixByteCount(newValue.toLong())
             lbStatus.text = "$currentByteCount / 5MB"
         }
+    }
+
+    private fun bindProgress() {
+        busyProperty.addListener { _, _, newValue ->
+            logger.debug("busyProperty.value : $newValue")
+            vbProgress.isVisible = newValue
+        }
+
+        pb.progressProperty().bindBidirectional(viewModel.progressProperty)
+        lbPbMsg.textProperty().bindBidirectional(viewModel.progressMsgProperty)
     }
 
     private fun sorryMyBad() {
@@ -111,11 +131,21 @@ class VRoot : IView, KoinComponent {
         }
 
         miCompress.onAction = EventHandler {
-            logger.debug("?????????????????????")
             miCompress.isDisable = true
+            busyProperty.value = true
             myScope.launch {
                 viewModel.compress()
                 miCompress.isDisable = false
+                busyProperty.value = false
+            }
+        }
+
+        miSaveAs.onAction = EventHandler {
+            busyProperty.value = true
+            myScope.launch {
+                val path = "C:\\Users\\constant\\Desktop\\block-me-if-you-can-download\\compressed.hwp"
+                viewModel.saveUglySourceAs(path)
+                busyProperty.value = false
             }
         }
     }
@@ -136,7 +166,8 @@ class VRoot : IView, KoinComponent {
 
                         children.forEachIndexed { newIndex, node ->
                             if (node is Label) {
-                                val oldIndex = (it.from until it.to).first { oldIndex -> it.getPermutation(oldIndex) == newIndex }
+                                val oldIndex =
+                                    (it.from until it.to).first { oldIndex -> it.getPermutation(oldIndex) == newIndex }
                                 children[newIndex] = source[oldIndex]
                             }
                         }
@@ -192,6 +223,14 @@ class VRoot : IView, KoinComponent {
         }
     }
 
+    private fun block() {
+        busyProperty.value = true
+    }
+
+    private fun unblock() {
+        busyProperty.value = false
+    }
+    
     override fun onDestroy() {
 
     }

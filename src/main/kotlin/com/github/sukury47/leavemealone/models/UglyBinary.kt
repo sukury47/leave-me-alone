@@ -28,11 +28,17 @@ class UglyBinary(private val binary: BinData, private val embeddedBinary: Embedd
             val prefix = nameProperty.value.substringBeforeLast(".")
             val name = "$prefix.$value"
             nameProperty.value = name
+            embeddedBinary.name = name
             binary.extensionForEmbedding = value
         }
 
     val thumbnail: Image
     var bytes: ByteArray = embeddedBinary.data
+        set(value) {
+            embeddedBinary.data = value
+            byteCountProperty.value = toBinaryPrefixByteCount(value.size.toLong())
+            field = value
+        }
 
     init {
         nameProperty.value = embeddedBinary.name
