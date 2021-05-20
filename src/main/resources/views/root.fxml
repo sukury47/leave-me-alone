@@ -67,7 +67,7 @@
                         <KeyCodeCombination alt="UP" code="S" control="DOWN" meta="UP" shift="DOWN" shortcut="UP" />
                      </accelerator></MenuItem>
                   <SeparatorMenuItem mnemonicParsing="false" />
-                  <MenuItem fx:id="miClose" mnemonicParsing="false" text="Close" />
+                  <MenuItem fx:id="miQuit" mnemonicParsing="false" text="Close" />
             </items>
           </Menu>
           <Menu mnemonicParsing="false" text="Edit">
@@ -104,17 +104,6 @@
           </Menu>
         </menus>
       </MenuBar>
-      <HBox disable="true" prefHeight="30.0" prefWidth="200.0" spacing="4.0" visible="false" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="25.0">
-         <children>
-            <Button fx:id="btnAdd" mnemonicParsing="false" prefWidth="80.0" text="Add" />
-            <Button fx:id="btnRemove" mnemonicParsing="false" prefWidth="80.0" text="Remove" />
-            <Button fx:id="btnUpdate" mnemonicParsing="false" prefWidth="80.0" text="Update" />
-            <Button fx:id="btnMix" mnemonicParsing="false" prefWidth="80.0" text="Mix" />
-         </children>
-         <padding>
-            <Insets bottom="4.0" left="4.0" right="4.0" top="4.0" />
-         </padding>
-      </HBox>
       <HBox alignment="CENTER_RIGHT" prefHeight="25.0" prefWidth="200.0" spacing="4.0" style="-fx-background-color: #EDEDED;" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0">
          <children>
             <Label fx:id="lbStatus" text="72MB / 5MB" />

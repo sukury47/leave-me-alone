@@ -33,7 +33,7 @@ class VMRoot : KoinComponent {
             }
             field = value
         }
-    val uglySourceByteCount = SimpleLongProperty()
+    val uglySourceByteCount = SimpleLongProperty(0)
 
     private val logger by LoggerDelegate()
 

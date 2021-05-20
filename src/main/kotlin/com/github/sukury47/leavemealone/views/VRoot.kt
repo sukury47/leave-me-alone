@@ -32,18 +32,6 @@ class VRoot : IView, KoinComponent {
     private lateinit var tpUglyBinaries: TilePane
 
     @FXML
-    private lateinit var btnAdd: Button
-
-    @FXML
-    private lateinit var btnRemove: Button
-
-    @FXML
-    private lateinit var btnUpdate: Button
-
-    @FXML
-    private lateinit var btnMix: Button
-
-    @FXML
     private lateinit var miOpen: MenuItem
 
     @FXML
@@ -249,31 +237,6 @@ class VRoot : IView, KoinComponent {
                 }
             }
         })
-
-        //for dev
-        btnAdd.onAction = EventHandler {
-            //viewModel.uglyBinariesProperty.add(UglyBinary("Ugly#${viewModel.uglyBinariesProperty.size}"))
-        }
-
-        btnUpdate.onAction = EventHandler {
-            val i = Random.Default.nextInt(0, viewModel.uglyBinariesProperty.size)
-            val item = viewModel.uglyBinariesProperty[i]
-            println("index : $i")
-            item.nameProperty.value = item.nameProperty.value + "_U"
-            println("value : ${item.nameProperty.value}")
-            //viewModel.uglyBinariesProperty[i].
-        }
-
-        btnMix.onAction = EventHandler {
-            viewModel.uglyBinariesProperty.sortBy { Random.Default.nextInt(-1, 2) }
-        }
-
-        btnRemove.onAction = EventHandler {
-            val i = Random.Default.nextInt(0, viewModel.uglyBinariesProperty.size)
-            //val item = viewModel.uglyBinariesProperty[i]
-            println("remove index :$i")
-            viewModel.uglyBinariesProperty.removeAt(i)
-        }
     }
 
     private fun addUglyBinaries(uglyBinaries: List<UglyBinary>) {
