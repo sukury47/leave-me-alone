@@ -62,7 +62,7 @@ class VRoot : IView, KoinComponent {
     private lateinit var miSave: MenuItem
 
     @FXML
-    private lateinit var miClose: MenuItem
+    private lateinit var miQuit: MenuItem
 
     @FXML
     private lateinit var miOpenFromUrl: MenuItem
@@ -217,7 +217,7 @@ class VRoot : IView, KoinComponent {
             }
         }
 
-        miClose.onAction = EventHandler {
+        miQuit.onAction = EventHandler {
             Platform.exit()
         }
     }
