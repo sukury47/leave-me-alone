@@ -49,8 +49,6 @@ class VUglyBinary : IView {
 
         item.isSelectedProperty.addListener { _, _, newValue ->
             val borderColor = if (newValue) "#4B9BD2" else "#ffffff"
-            println("$newValue : $borderColor")
-
             sp.style = "-fx-border-color:$borderColor;-fx-border-width:4"
 
             arrayOf(lbByteCount, lbSize, lbFormat, lbHex).forEach {
@@ -61,7 +59,6 @@ class VUglyBinary : IView {
         iv.image = item.thumbnail
 
         sp.onMouseClicked = EventHandler {
-            println(it.button)
             if (it.button == MouseButton.PRIMARY) {
                 item.isSelectedProperty.value = !item.isSelectedProperty.value
             }
