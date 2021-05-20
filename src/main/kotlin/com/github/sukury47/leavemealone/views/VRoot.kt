@@ -1,6 +1,7 @@
 package com.github.sukury47.leavemealone.views
 
 import com.github.sukury47.leavemealone.LoggerDelegate
+import com.github.sukury47.leavemealone.ScreenController
 import com.github.sukury47.leavemealone.models.UglyBinary
 import com.github.sukury47.leavemealone.viewmodels.VMRoot
 import javafx.beans.property.SimpleBooleanProperty
@@ -10,17 +11,21 @@ import javafx.fxml.FXML
 import javafx.fxml.FXMLLoader
 import javafx.scene.Parent
 import javafx.scene.control.*
+import javafx.scene.input.TransferMode
 import javafx.scene.layout.TilePane
 import javafx.scene.layout.VBox
+import javafx.stage.FileChooser
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import java.io.File
 import kotlin.random.Random
 
 class VRoot : IView, KoinComponent {
-    private val viewModel: VMRoot by inject()
+
 
     @FXML
     private lateinit var tpUglyBinaries: TilePane
@@ -47,10 +52,16 @@ class VRoot : IView, KoinComponent {
     private lateinit var miSortByWidthDesc: MenuItem
 
     @FXML
-    private lateinit var miCompress: MenuItem
+    private lateinit var miCompressAll: MenuItem
 
     @FXML
     private lateinit var miSaveAs: MenuItem
+
+    @FXML
+    private lateinit var miSave: MenuItem
+
+    @FXML
+    private lateinit var miOpenFromUrl: MenuItem
 
     @FXML
     private lateinit var scrp: ScrollPane
@@ -67,10 +78,20 @@ class VRoot : IView, KoinComponent {
     @FXML
     private lateinit var lbPbMsg: Label
 
+    @FXML
+    private lateinit var btnCancel: Button
+
     private val logger by LoggerDelegate()
     private val myScope = MainScope()
 
     private val busyProperty = SimpleBooleanProperty(false)
+
+    private val viewModel: VMRoot by inject()
+    private val screenController by inject<ScreenController>()
+
+    private val extensionFilterForHwp = FileChooser.ExtensionFilter("한글", "*.hwp")
+
+    private var job: Job? = null
 
     @FXML
     private fun initialize() {
@@ -78,10 +99,37 @@ class VRoot : IView, KoinComponent {
         bindMenuBar()
         sorryMyBad()
         bindProgress()
+        bindCancel()
 
         viewModel.uglySourceByteCount.addListener { _, _, newValue ->
             val currentByteCount = UglyBinary.toBinaryPrefixByteCount(newValue.toLong())
             lbStatus.text = "$currentByteCount / 5MB"
+        }
+
+        scrp.run {
+            setOnDragOver {
+                if (it.gestureSource != it && it.dragboard.hasFiles() && it.dragboard.files.size == 1 && it.dragboard.files[0].extension == "hwp") {
+                    it.acceptTransferModes(*TransferMode.COPY_OR_MOVE)
+                }
+                it.consume()
+            }
+
+            setOnDragDropped {
+                val board = it.dragboard
+                var success = false
+                if (board.hasFiles() && board.files.size == 1) {
+                    openFile(board.files[0])
+                    success = true
+                }
+                it.isDropCompleted = success
+                it.consume()
+            }
+        }
+    }
+
+    private fun bindCancel() {
+        btnCancel.onAction = EventHandler {
+            job?.cancel()
         }
     }
 
@@ -89,6 +137,9 @@ class VRoot : IView, KoinComponent {
         busyProperty.addListener { _, _, newValue ->
             logger.debug("busyProperty.value : $newValue")
             vbProgress.isVisible = newValue
+            arrayOf(miOpen, miCompressAll, miSaveAs, miSortByWidthDesc, miSortByWidthAsc)
+                .forEach { it.isDisable = newValue }
+
         }
 
         pb.progressProperty().bindBidirectional(viewModel.progressProperty)
@@ -107,19 +158,7 @@ class VRoot : IView, KoinComponent {
 
     private fun bindMenuBar() {
         miOpen.onAction = EventHandler {
-            logger.debug("am i called?")
-            miOpen.isDisable = true
-            busyProperty.value = true
-            myScope.launch {
-                val job = myScope.launch {
-                    viewModel.loadUglySource()
-                }
-                job.join()
-                withContext(myScope.coroutineContext) {
-                    miOpen.isDisable = false
-                    busyProperty.value = false
-                }
-            }
+            openFileChooser()
         }
 
         miSortByWidthAsc.onAction = EventHandler {
@@ -130,22 +169,47 @@ class VRoot : IView, KoinComponent {
             viewModel.sortBy(VMRoot.SortBy.IMG_WIDTH_DESC)
         }
 
-        miCompress.onAction = EventHandler {
-            miCompress.isDisable = true
+        miCompressAll.onAction = EventHandler {
+            miCompressAll.isDisable = true
             busyProperty.value = true
             myScope.launch {
                 viewModel.compress()
-                miCompress.isDisable = false
+                miCompressAll.isDisable = false
                 busyProperty.value = false
             }
         }
 
         miSaveAs.onAction = EventHandler {
-            busyProperty.value = true
-            myScope.launch {
-                val path = "C:\\Users\\constant\\Desktop\\block-me-if-you-can-download\\compressed.hwp"
-                viewModel.saveUglySourceAs(path)
-                busyProperty.value = false
+            openFileChooserForSaveAs()
+        }
+
+        miSave.onAction = EventHandler {
+            if (viewModel.isUglySourceVolatile()) {
+               openFileChooserForSaveAs()
+            } else {
+                myScope.launch {
+                    viewModel.saveUglySource()
+                }
+            }
+        }
+
+        miOpenFromUrl.onAction = EventHandler {
+            val dialog =
+                TextInputDialog("https://www.chungbuk.ac.kr/site/f09/boardDownload.do?boardSeq=159&post=3191249&bdfiles=332021")
+            dialog.title = "Open File From URL"
+            dialog.graphic = null
+            dialog.headerText = null
+            dialog.contentText = "Enter URL"
+            val optional = dialog.showAndWait()
+            if (optional.isPresent) {
+                block()
+                job = myScope.launch {
+                    try {
+                        viewModel.loadUglySourceByUrl(optional.get())
+                    } finally {
+                        unblock()
+                    }
+                }
             }
         }
     }
@@ -215,11 +279,54 @@ class VRoot : IView, KoinComponent {
     }
 
     private fun removeUglyBinaries(uglyBinaries: List<UglyBinary>) {
-        uglyBinaries.forEach { item ->
-            tpUglyBinaries.children.indexOfFirst { candidate ->
-                val id = candidate.userData as String
-                id == item.id
-            }.let { tpUglyBinaries.children.removeAt(it) }
+        if (uglyBinaries.size == tpUglyBinaries.children.size) {
+            tpUglyBinaries.children.clear()
+        } else {
+            uglyBinaries.forEach { item ->
+                tpUglyBinaries.children.indexOfFirst { candidate ->
+                    val id = candidate.userData as String
+                    id == item.id
+                }.let { tpUglyBinaries.children.removeAt(it) }
+            }
+        }
+    }
+
+    private fun openFileChooser() {
+        val chooser = getFileChooserForHwp()
+        val file = chooser.showOpenDialog(null)
+        if (file != null) {
+            openFile(file)
+        }
+    }
+
+    private fun getFileChooserForHwp(): FileChooser {
+        val chooser = FileChooser()
+        chooser.extensionFilters.add(extensionFilterForHwp)
+        chooser.initialDirectory = File(viewModel.lastUglySourcePath)
+        return chooser
+    }
+
+    private fun openFileChooserForSaveAs() {
+        val chooser = getFileChooserForHwp()
+        val file = chooser.showSaveDialog(null)
+        if (file != null) {
+            logger.debug(file.path)
+            block()
+            myScope.launch {
+                viewModel.saveUglySourceAs(file)
+                unblock()
+            }
+        }
+    }
+
+    private fun openFile(file: File) {
+        block()
+        job = myScope.launch {
+            try {
+                viewModel.loadUglySourceByLocalFile(file)
+            } finally {
+                unblock()
+            }
         }
     }
 
@@ -230,8 +337,8 @@ class VRoot : IView, KoinComponent {
     private fun unblock() {
         busyProperty.value = false
     }
-    
-    override fun onDestroy() {
 
+    override fun onDestroy() {
+        myScope.cancel()
     }
 }

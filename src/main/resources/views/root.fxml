@@ -8,6 +8,7 @@
 <?import javafx.scene.control.MenuItem?>
 <?import javafx.scene.control.ProgressBar?>
 <?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.SeparatorMenuItem?>
 <?import javafx.scene.input.KeyCodeCombination?>
 <?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.layout.HBox?>
@@ -32,6 +33,11 @@
                <children>
                   <ProgressBar fx:id="pb" prefWidth="400.0" progress="0.0" />
                   <Label fx:id="lbPbMsg" prefWidth="400.0" style="-fx-background-color: #FBFBFB;" text="Message" />
+                  <Button fx:id="btnCancel" mnemonicParsing="false" prefWidth="80.0" text="Cancel">
+                     <VBox.margin>
+                        <Insets left="320.0" />
+                     </VBox.margin>
+                  </Button>
                </children>
             </VBox>
          </children>
@@ -45,21 +51,37 @@
                         <KeyCodeCombination alt="UP" code="O" control="DOWN" meta="UP" shift="UP" shortcut="UP" />
                      </accelerator>
                   </MenuItem>
-                  <MenuItem fx:id="miCompress" mnemonicParsing="false" text="Compress">
+                  <MenuItem fx:id="miOpenFromUrl" mnemonicParsing="false" text="Open From Url">
                      <accelerator>
-                        <KeyCodeCombination alt="UP" code="D" control="DOWN" meta="UP" shift="UP" shortcut="UP" />
+                        <KeyCodeCombination alt="UP" code="O" control="DOWN" meta="UP" shift="DOWN" shortcut="UP" />
+                     </accelerator>
+                  </MenuItem>
+                  <SeparatorMenuItem mnemonicParsing="false" />
+                  <MenuItem fx:id="miSave" mnemonicParsing="false" text="Save">
+                     <accelerator>
+                        <KeyCodeCombination alt="UP" code="S" control="DOWN" meta="UP" shift="UP" shortcut="UP" />
                      </accelerator>
                   </MenuItem>
                   <MenuItem fx:id="miSaveAs" mnemonicParsing="false" text="Save As">
                      <accelerator>
                         <KeyCodeCombination alt="UP" code="S" control="DOWN" meta="UP" shift="DOWN" shortcut="UP" />
                      </accelerator></MenuItem>
+                  <SeparatorMenuItem mnemonicParsing="false" />
                   <MenuItem mnemonicParsing="false" text="Close" />
             </items>
           </Menu>
           <Menu mnemonicParsing="false" text="Edit">
             <items>
-              <MenuItem mnemonicParsing="false" text="Delete" />
+              <MenuItem fx:id="miDelete" mnemonicParsing="false" text="Delete">
+                     <accelerator>
+                        <KeyCodeCombination alt="UP" code="DELETE" control="ANY" meta="UP" shift="UP" shortcut="UP" />
+                     </accelerator></MenuItem>
+                  <MenuItem fx:id="miCompressAll" mnemonicParsing="false" text="Compress All">
+                     <accelerator>
+                        <KeyCodeCombination alt="UP" code="D" control="DOWN" meta="UP" shift="UP" shortcut="UP" />
+                     </accelerator>
+                  </MenuItem>
+                  <SeparatorMenuItem mnemonicParsing="false" />
                   <MenuItem fx:id="miSortByWidthAsc" mnemonicParsing="false" text="Sort By Width Asc">
                      <accelerator>
                         <KeyCodeCombination alt="UP" code="DIGIT1" control="DOWN" meta="UP" shift="UP" shortcut="UP" />
@@ -71,6 +93,9 @@
                      </accelerator>
                   </MenuItem>
             </items>
+               <accelerator>
+                  <KeyCodeCombination alt="UP" code="DELETE" control="ANY" meta="UP" shift="UP" shortcut="UP" />
+               </accelerator>
           </Menu>
           <Menu mnemonicParsing="false" text="Help">
             <items>
