@@ -17,10 +17,7 @@ import javafx.scene.input.TransferMode
 import javafx.scene.layout.TilePane
 import javafx.scene.layout.VBox
 import javafx.stage.FileChooser
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.MainScope
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.io.File
@@ -74,7 +71,15 @@ class VRoot : IView, KoinComponent {
     private lateinit var btnCancel: Button
 
     private val logger by LoggerDelegate()
-    private val myScope = MainScope()
+    private val myScope = MainScope() + CoroutineExceptionHandler { _, throwable ->
+        logger.error(throwable.message)
+        val alert = Alert(Alert.AlertType.ERROR)
+        alert.title = "Unexpected Error"
+        alert.headerText = null
+        alert.contentText = throwable.message
+        alert.initOwner(screenController.primaryStage)
+        alert.showAndWait()
+    }
 
     private val busyProperty = SimpleBooleanProperty(false)
 
@@ -189,7 +194,7 @@ class VRoot : IView, KoinComponent {
         }
 
         miOpenFromUrl.onAction = EventHandler {
-            val dialog = TextInputDialog("https://www.chungbuk.ac.kr/site/f09/boardDownload.do?boardSeq=159&post=3191249&bdfiles=332021")
+            val dialog = TextInputDialog()
             dialog.title = "Open File From URL"
             dialog.graphic = null
             dialog.headerText = null

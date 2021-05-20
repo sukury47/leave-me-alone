@@ -93,6 +93,7 @@ class VMRoot : KoinComponent {
             loadUglyBinaries(uglySource!!)
         } catch (e: Exception) {
             clearUglySource()
+            throw e
         } finally {
             clearProgress()
         }
