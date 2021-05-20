@@ -100,7 +100,7 @@ class VRoot : IView, KoinComponent {
 
         viewModel.uglySourceByteCount.addListener { _, _, newValue ->
             val currentByteCount = UglyBinary.toBinaryPrefixByteCount(newValue.toLong())
-            lbStatus.text = "$currentByteCount / 5MB"
+            lbStatus.text = currentByteCount
         }
 
         val isUglySourceNullProperty = viewModel.uglySourceByteCount.lessThan(1)
