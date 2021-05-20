@@ -4,6 +4,7 @@ import com.github.sukury47.leavemealone.LoggerDelegate
 import com.github.sukury47.leavemealone.ScreenController
 import com.github.sukury47.leavemealone.models.UglyBinary
 import com.github.sukury47.leavemealone.viewmodels.VMRoot
+import javafx.application.Platform
 import javafx.beans.property.SimpleBooleanProperty
 import javafx.collections.ListChangeListener
 import javafx.event.EventHandler
@@ -59,6 +60,9 @@ class VRoot : IView, KoinComponent {
 
     @FXML
     private lateinit var miSave: MenuItem
+
+    @FXML
+    private lateinit var miClose: MenuItem
 
     @FXML
     private lateinit var miOpenFromUrl: MenuItem
@@ -211,6 +215,10 @@ class VRoot : IView, KoinComponent {
                     }
                 }
             }
+        }
+
+        miClose.onAction = EventHandler {
+            Platform.exit()
         }
     }
 
