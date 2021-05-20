@@ -61,6 +61,8 @@ class UglyBinary(private val binary: BinData, private val embeddedBinary: Embedd
         }
     }
 
+    fun isScaleCompressible() = widthProperty.value > 500 || heightProperty.value > 500
+
     companion object {
         fun toBinaryPrefixByteCount(size: Long): String {
             val absB = if (size == Long.MIN_VALUE) Long.MAX_VALUE else Math.abs(size)

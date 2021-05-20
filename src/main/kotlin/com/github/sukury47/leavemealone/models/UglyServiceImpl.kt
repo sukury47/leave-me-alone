@@ -3,37 +3,35 @@ package com.github.sukury47.leavemealone.models
 import com.github.sukury47.leavemealone.LoggerDelegate
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
-import kr.dogfoot.hwplib.`object`.HWPFile
 import kr.dogfoot.hwplib.`object`.bindata.EmbeddedBinaryData
 import kr.dogfoot.hwplib.`object`.docinfo.BinData
-import kr.dogfoot.hwplib.reader.HWPReader
 import kr.dogfoot.hwplib.writer.HWPWriter
-import net.coobird.thumbnailator.Thumbnailator
 import net.coobird.thumbnailator.Thumbnails
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
+import java.io.File
 import java.lang.IllegalArgumentException
-import kotlin.math.floor
 
 class UglyServiceImpl : UglyService {
     private val logger by LoggerDelegate()
-    override suspend fun loadSource(path: String): HWPFile = withContext(Dispatchers.IO) {
-        logger.debug("load hwp from $path")
-        HWPReader.fromFile(path)
+    override suspend fun loadSource(path: String): UglySource = withContext(Dispatchers.IO) {
+        UglySource.instanceByLocalFile(File(path))
     }
 
-    override suspend fun getBinariesCount(source: HWPFile): Int {
-        return source.binData.embeddedBinaryDataList.size
+    override suspend fun loadSourceByUrl(urlStr: String, progress: (count: Int, length: Int) -> Unit): UglySource  {
+        return UglySource.instanceByUrl(urlStr, progress)
     }
+
+    override suspend fun getBinariesCount(source: UglySource) = source.binary.binData.embeddedBinaryDataList.size
 
     @OptIn(FlowPreview::class)
-    override suspend fun loadBinaries(source: HWPFile): Flow<UglyBinary> {
+    override suspend fun loadBinaries(source: UglySource): Flow<UglyBinary> {
         val binariesBySuffix = mutableMapOf<String, BinData>()
-        source.docInfo.binDataList.forEach {
+        source.binary.docInfo.binDataList.forEach {
             binariesBySuffix[String.format("BIN%04X", it.binDataID)] = it
         }
 
-        val embeddedBinaries = source.binData.embeddedBinaryDataList
+        val embeddedBinaries = source.binary.binData.embeddedBinaryDataList
 
         fun sibal(embeddedBinary: EmbeddedBinaryData) = flow {
             val hex = embeddedBinary.name.substringBeforeLast(".")
@@ -67,7 +65,6 @@ class UglyServiceImpl : UglyService {
                     binary.bytes = baos.toByteArray()
                     binary.format = "jpg"
                 }
-
             }
             val compressedLength = binary.bytes.size.toLong()
             return orgLength - compressedLength
@@ -91,7 +88,11 @@ class UglyServiceImpl : UglyService {
         return orgLength - binary.bytes.size.toLong()
     }
 
-    override suspend fun saveAs(source: HWPFile, path: String) {
-        HWPWriter.toFile(source, path)
+    override suspend fun saveAs(source: UglySource, path: String) {
+        HWPWriter.toFile(source.binary, path)
+    }
+
+    override suspend fun save(source: UglySource) {
+        HWPWriter.toFile(source.binary, source.path)
     }
 }

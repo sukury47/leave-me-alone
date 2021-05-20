@@ -12,14 +12,19 @@ import javafx.scene.layout.StackPane
 class VUglyBinary : IView {
     @FXML
     private lateinit var lbHex: Label
+
     @FXML
     private lateinit var lbFormat: Label
+
     @FXML
     private lateinit var lbSize: Label
+
     @FXML
     private lateinit var lbByteCount: Label
+
     @FXML
     private lateinit var iv: ImageView
+
     @FXML
     private lateinit var sp: StackPane
 
@@ -49,8 +54,6 @@ class VUglyBinary : IView {
 
         item.isSelectedProperty.addListener { _, _, newValue ->
             val borderColor = if (newValue) "#4B9BD2" else "#ffffff"
-            println("$newValue : $borderColor")
-
             sp.style = "-fx-border-color:$borderColor;-fx-border-width:4"
 
             arrayOf(lbByteCount, lbSize, lbFormat, lbHex).forEach {
@@ -61,7 +64,6 @@ class VUglyBinary : IView {
         iv.image = item.thumbnail
 
         sp.onMouseClicked = EventHandler {
-            println(it.button)
             if (it.button == MouseButton.PRIMARY) {
                 item.isSelectedProperty.value = !item.isSelectedProperty.value
             }

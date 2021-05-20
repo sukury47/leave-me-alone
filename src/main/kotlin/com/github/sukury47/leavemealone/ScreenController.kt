@@ -5,7 +5,9 @@ import javafx.event.EventHandler
 import javafx.fxml.FXMLLoader
 import javafx.scene.Parent
 import javafx.scene.Scene
+import javafx.scene.image.Image
 import javafx.stage.Stage
+import javax.swing.Icon
 
 class ScreenController(var primaryStage: Stage) {
     private var showingScreen: Screen? = null
@@ -13,6 +15,7 @@ class ScreenController(var primaryStage: Stage) {
 
     init {
         primaryStage.title = "let's suck tax together"
+        primaryStage.icons.add(Image(this.javaClass.getResourceAsStream("/images/ic-panda-64-64.png")))
     }
 
     fun show(key: Screen.Key, showForcibly: Boolean = true) {

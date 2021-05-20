@@ -1,8 +1,7 @@
 package com.github.sukury47.leavemealone.viewmodels
 
 import com.github.sukury47.leavemealone.LoggerDelegate
-import com.github.sukury47.leavemealone.models.UglyBinary
-import com.github.sukury47.leavemealone.models.UglyService
+import com.github.sukury47.leavemealone.models.*
 import javafx.beans.property.SimpleDoubleProperty
 import javafx.beans.property.SimpleLongProperty
 import javafx.beans.property.SimpleStringProperty
@@ -11,7 +10,6 @@ import javafx.collections.ObservableList
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.flowOn
-import kr.dogfoot.hwplib.`object`.HWPFile
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.io.File
@@ -26,11 +24,20 @@ class VMRoot : KoinComponent {
             item.heightProperty
         )
     }
-    val uglySourceByteCount = SimpleLongProperty()
-    private val myScope = MainScope()
+
+    private var uglySource: UglySource? = null
+        set(value) {
+            value?.let {
+                lastUglySourcePath = it.path.substringBeforeLast("\\")
+                uglySourceByteCount.bind(it.byteCountProperty)
+            }
+            field = value
+        }
+    val uglySourceByteCount = SimpleLongProperty(0)
+
     private val logger by LoggerDelegate()
-    private var uglySource: HWPFile? = null
-    private var uglySourcePath: String? = null
+
+    var lastUglySourcePath: String = System.getProperty("user.home") + "\\Downloads"
 
     val progressProperty = SimpleDoubleProperty(0.0)
     val progressMsgProperty = SimpleStringProperty()
@@ -70,32 +77,52 @@ class VMRoot : KoinComponent {
     }
 
     private fun clearUglySource() {
-        uglySource = null
-        uglySourcePath = null
         uglyBinariesProperty.clear()
+        uglySourceByteCount.unbind()
     }
 
-    suspend fun loadUglySource() {
-        clearUglySource()
-        val path = "C:\\Users\\constant\\Desktop\\block-me-if-you-can-download\\2015102600000001.hwp"
-        uglySource = uglyService.loadSource(path)
-        uglySource?.let { source ->
-            uglySourcePath = path
-            val max = uglyService.getBinariesCount(source)
-            var count = 0
-            uglySourceByteCount.value = File(path).length()
-            uglyService
-                .loadBinaries(source)
-                .flowOn(Dispatchers.IO)
-                .collect {
-                    count++
-                    logger.debug("collect")
-                    uglyBinariesProperty.add(it)
-                    progressMsgProperty.value = "loading binaries... ${++count} / $max"
-                    progressProperty.value = count / max.toDouble()
+    suspend fun loadUglySourceByUrl(urlStr: String) {
+        try {
+            uglySource = withContext(Dispatchers.IO) {
+                uglyService.loadSourceByUrl(urlStr) { count, length ->
+                    launch(Dispatchers.Main) {
+                        setProgress("download file...", length, count)
+                    }
                 }
+            }
+            loadUglyBinaries(uglySource!!)
+        } catch (e: Exception) {
+            clearUglySource()
+            throw e
+        } finally {
             clearProgress()
         }
+    }
+
+    suspend fun loadUglySourceByLocalFile(file: File) {
+        try {
+            uglySource = withContext(Dispatchers.IO) {
+                uglyService.loadSource(file.path)
+            }
+            loadUglyBinaries(uglySource!!)
+        } catch (e: Exception) {
+            clearUglySource()
+        } finally {
+            clearProgress()
+        }
+    }
+
+    private suspend fun loadUglyBinaries(uglySource: UglySource) {
+        val length = uglyService.getBinariesCount(uglySource)
+        var count = 0
+        uglyService
+            .loadBinaries(uglySource)
+            .flowOn(Dispatchers.IO)
+            .collect {
+                logger.debug("collect")
+                uglyBinariesProperty.add(it)
+                setProgress("loading binaries...", length, ++count)
+            }
     }
 
     private fun clearProgress() {
@@ -105,24 +132,35 @@ class VMRoot : KoinComponent {
 
     suspend fun saveUglySourceAs(path: String) {
         uglySource?.let {
-            //val path = "C:\\Users\\constant\\Desktop\\block-me-if-you-can-download\\2020022700000589_compressed.hwp"
-            uglyService.saveAs(it, path)
+            withContext(Dispatchers.IO) {
+                uglyService.saveAs(it, path)
+            }
         }
     }
 
-    fun sortBy(sortBy: SortBy) {
+    suspend fun saveUglySource() {
+        uglySource?.let {
+            withContext(Dispatchers.IO) {
+                uglyService.save(it)
+            }
+        }
+    }
+
+    suspend fun saveUglySourceAs(file: File) {
+        saveUglySourceAs(file.path)
+    }
+
+    fun sortBy(sortBy: VMRoot.SortBy) {
         uglyBinariesProperty.sortWith(sortBy.comparator)
     }
 
-    suspend fun compress() = coroutineScope {
+    suspend fun compress()  {
 
         var tryCount = 0
 
-        try {
-            compressAnyNotJpg()
+        val affectedCount = compressAnyNotJpg()
+        if (affectedCount > 0) {
             tryCount++
-        } catch (e: Exception) {
-
         }
 
         compressUntilEnough(tryCount)
@@ -131,26 +169,24 @@ class VMRoot : KoinComponent {
     private suspend fun compressUntilEnough(orgTryCount: Int) {
         var tryCount = orgTryCount
         while (!isCompressEnough()) {
-            try {
-                logger.debug("compress by scale!")
-                compressByScale(++tryCount)
-            } catch (e: Exception) {
+            logger.debug("compress by scale!")
+            if(compressByScale(++tryCount) == 0) {
                 break
             }
         }
 
         //adjust file byte count
-        uglySourcePath?.let {
+        uglySource?.let {
             tryCount++
             setProgress("($tryCount)adjust byte count..", 1, 0)
-            val dir = it.substringBeforeLast("\\")
+            val dir = it.path.substringBeforeLast("\\")
             val tempPath = "$dir\\temp.hwp"
             uglyService.saveAs(uglySource!!, tempPath)
 
             setProgress("($tryCount)adjust byte count..", 1, 1)
 
             val tempFile = File(tempPath)
-            uglySourceByteCount.value = tempFile.length()
+            it.byteCountProperty.value = tempFile.length()
             tempFile.delete()
             if (!isCompressEnough()) {
                 compressUntilEnough(++tryCount)
@@ -158,40 +194,41 @@ class VMRoot : KoinComponent {
         }
     }
 
-    private fun isCompressEnough() = uglySourceByteCount.value <= 5 * 1024 * 1024
+    private fun isCompressEnough() = uglySource!!.byteCountProperty.value <= 5 * 1024 * 1024
 
-    private suspend fun compressByScale(tryCount: Int) = coroutineScope {
+    private suspend fun compressByScale(tryCount: Int) : Int {
 
         val items = uglyBinariesProperty
             .filter { it.isSelectedProperty.value }
             .filter { it.widthProperty.value > 500 && it.heightProperty.value > 500 }
 
-        val max = items.count()
-        var count = 0
+        val length = items.count()
+        if (length > 0) {
+            val factor = (uglySource!!.byteCountProperty.value - (5 * 1024 * 1024)) / length
+            val scale = getScaleFactor(factor)
+            logger.debug("scale : $scale, factor :$factor , ${UglyBinary.toBinaryPrefixByteCount(factor)} count : $length")
 
-        if (max == 0) {
-            throw Exception()
+            coroutineScope {
+                var count = 0
+                items
+                    .asSequence()
+                    .map {
+                        async(Dispatchers.IO) {
+                            logger.debug("uglyService.compressByScale")
+                            uglyService.compressByScale(it, scale)
+                        }
+                    }
+                    .forEach {
+                        uglySource!!.byteCountProperty.value -= it.await()
+                        setProgress("($tryCount)compress images by scale : $scale", length, ++count)
+                    }
+            }
+
         }
-
-        val factor = (uglySourceByteCount.value - (5 * 1024 * 1024)) / max
-        val scale = getScaleByFactor(factor)
-        logger.debug("scale : $scale, factor :$factor , ${UglyBinary.toBinaryPrefixByteCount(factor)} count : $max")
-
-        items
-            .asSequence()
-            .map {
-                async(Dispatchers.IO) {
-                    logger.debug("uglyService.compressByScale")
-                    uglyService.compressByScale(it, scale)
-                }
-            }
-            .forEach {
-                uglySourceByteCount.value -= it.await()
-                setProgress("($tryCount)compress images by scale : $scale", max, ++count)
-            }
+        return length
     }
 
-    private fun getScaleByFactor(factor: Long): Double {
+    private fun getScaleFactor(factor: Long): Double {
         return when {
             factor > 400 * 1024 -> 0.5
             factor > 300 * 1024 -> 0.6
@@ -207,30 +244,31 @@ class VMRoot : KoinComponent {
         progressMsgProperty.value = "$prefixMsg ($count / $max)"
     }
 
-    private suspend fun compressAnyNotJpg() = coroutineScope {
-        val items = uglyBinariesProperty.filter { it.isSelectedProperty.value && it.format != "jpg"}
-        val max = items.size
+    private suspend fun compressAnyNotJpg() : Int {
+        val items = uglyBinariesProperty.filter { it.isSelectedProperty.value && it.format != "jpg" }
+        val length = items.size
 
-        if (max == 0) {
-            throw Exception()
+        if (length > 0) {
+            var count = 0
+            coroutineScope {
+                items
+                    .asSequence()
+                    .map {
+                        async(Dispatchers.IO) {
+                            logger.debug("uglyService.compressByJpg")
+                            uglyService.compressByJpg(it)
+                        }
+                    }
+                    .forEach {
+                        withContext(Dispatchers.Main) {
+                            uglySource!!.byteCountProperty.value -= it.await()
+                            setProgress("(1)changing format of binaries", length, ++count)
+                        }
+                    }
+            }
         }
-
-        var count = 0
-
-        items
-            .asSequence()
-            .map {
-                async(Dispatchers.IO) {
-                    logger.debug("uglyService.compressByJpg")
-                    uglyService.compressByJpg(it)
-                }
-            }
-            .forEach {
-                withContext(myScope.coroutineContext) {
-                    uglySourceByteCount.value -= it.await()
-                    progressProperty.value = ++count / max.toDouble()
-                    progressMsgProperty.value = "(1)changing format of binaries $count / $max"
-                }
-            }
+        return length
     }
+
+    fun isUglySourceVolatile() = uglySource?.isVolatile ?: false
 }
