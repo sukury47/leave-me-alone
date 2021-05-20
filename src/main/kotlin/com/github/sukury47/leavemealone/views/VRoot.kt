@@ -5,6 +5,7 @@ import com.github.sukury47.leavemealone.ScreenController
 import com.github.sukury47.leavemealone.models.UglyBinary
 import com.github.sukury47.leavemealone.viewmodels.VMRoot
 import javafx.application.Platform
+import javafx.beans.binding.Bindings
 import javafx.beans.property.SimpleBooleanProperty
 import javafx.collections.ListChangeListener
 import javafx.event.EventHandler
@@ -23,7 +24,6 @@ import kotlinx.coroutines.launch
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.io.File
-import kotlin.random.Random
 
 class VRoot : IView, KoinComponent {
 
@@ -98,6 +98,14 @@ class VRoot : IView, KoinComponent {
             lbStatus.text = "$currentByteCount / 5MB"
         }
 
+        val isUglySourceNullProperty = viewModel.uglySourceByteCount.lessThan(1)
+
+        arrayOf(miOpen, miOpenFromUrl).forEach { it.disableProperty().bind(busyProperty) }
+
+        val sibal = isUglySourceNullProperty.or(busyProperty)
+
+        arrayOf(miSave, miSaveAs, miCompressAll, miSortByWidthDesc, miSortByWidthAsc).forEach { it.disableProperty().bind(sibal) }
+
         scrp.run {
             setOnDragOver {
                 if (it.gestureSource != it && it.dragboard.hasFiles() && it.dragboard.files.size == 1 && it.dragboard.files[0].extension == "hwp") {
@@ -129,9 +137,6 @@ class VRoot : IView, KoinComponent {
         busyProperty.addListener { _, _, newValue ->
             logger.debug("busyProperty.value : $newValue")
             vbProgress.isVisible = newValue
-            arrayOf(miOpen, miCompressAll, miSaveAs, miSortByWidthDesc, miSortByWidthAsc)
-                .forEach { it.isDisable = newValue }
-
         }
 
         pb.progressProperty().bindBidirectional(viewModel.progressProperty)
@@ -162,11 +167,9 @@ class VRoot : IView, KoinComponent {
         }
 
         miCompressAll.onAction = EventHandler {
-            miCompressAll.isDisable = true
             busyProperty.value = true
             myScope.launch {
                 viewModel.compress()
-                miCompressAll.isDisable = false
                 busyProperty.value = false
             }
         }
@@ -186,8 +189,7 @@ class VRoot : IView, KoinComponent {
         }
 
         miOpenFromUrl.onAction = EventHandler {
-            val dialog =
-                TextInputDialog("https://www.chungbuk.ac.kr/site/f09/boardDownload.do?boardSeq=159&post=3191249&bdfiles=332021")
+            val dialog = TextInputDialog("https://www.chungbuk.ac.kr/site/f09/boardDownload.do?boardSeq=159&post=3191249&bdfiles=332021")
             dialog.title = "Open File From URL"
             dialog.graphic = null
             dialog.headerText = null
