@@ -12,14 +12,19 @@ import javafx.scene.layout.StackPane
 class VUglyBinary : IView {
     @FXML
     private lateinit var lbHex: Label
+
     @FXML
     private lateinit var lbFormat: Label
+
     @FXML
     private lateinit var lbSize: Label
+
     @FXML
     private lateinit var lbByteCount: Label
+
     @FXML
     private lateinit var iv: ImageView
+
     @FXML
     private lateinit var sp: StackPane
 
