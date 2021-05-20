@@ -14,7 +14,7 @@ class ScreenController(var primaryStage: Stage) {
     private val fxmlPathsByKey = mapOf(Screen.Key.ROOT to "/views/root.fxml")
 
     init {
-        primaryStage.title = "Hangul Word Processor Dumb Image Compressor"
+        primaryStage.title = "dobi-wants-to-be-free"
         primaryStage.icons.add(Image(this.javaClass.getResourceAsStream("/images/ic-panda-64-64.png")))
     }
 
